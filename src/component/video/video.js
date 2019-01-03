@@ -7,81 +7,69 @@ class Video extends React.Component{
   constructor(props){
     super(props)
     // TODO: Replace with your own channel ID
-    const drone = new window.ScaleDrone('yiS12Ts5RdNhebyM');
-  }
- componentDidMount(){
-
+    if (!this.props.location.hash) {
+      this.props.location.hash = Math.floor(Math.random() * 0xFFFFFF).toString(16);
+    }
     // Generate random room name if needed
-if (!this.props.location.hash) {
-  this.props.location.hash = Math.floor(Math.random() * 0xFFFFFF).toString(16);
-}
-const roomHash = this.props.location.hash.substring(1);
+
+  // Room name needs to be prefixed with 'observable-'
+    console.log('begin')
+    const drone =  new window.ScaleDrone('yiS12Ts5RdNhebyM');
+    console.log(drone)
+    console.log('end')
+    const roomHash = this.props.location.hash.substring(1);
+    const roomName = 'observable-' + roomHash;
+    const configuration = {
+      iceServers: [{
+        urls: 'stun:stun.l.google.com:19302'
+      }]
+    };
+    let room;
+    let pc;
 
 
-// Room name needs to be prefixed with 'observable-'
-const roomName = 'observable-' + roomHash;
-const configuration = {
-  iceServers: [{
-    urls: 'stun:stun.l.google.com:19302'
-  }]
-};
-let room;
-let pc;
+  }
 
-
-function onSuccess() {};
-function onError(error) {
+onSuccess() {};
+onError(error) {
   console.error(error);
 };
 
-this.drone.on('open', error => {
-  if (error) {
-    return console.error(error);
-  }
-  room = this.drone.subscribe(roomName);
-  room.on('open', error => {
-    if (error) {
-      onError(error);
-    }
-  });
-  // We're connected to the room and received an array of 'members'
-  // connected to the room (including us). Signaling server is ready.
-  room.on('members', members => {
-    console.log('MEMBERS', members);
-    // If we are the second user to connect to the room we will be creating the offer
-    const isOfferer = members.length === 2;
-    startWebRTC(isOfferer);
-  });
-});
-
-// Send signaling data via Scaledrone
-function sendMessage(message) {
+sendMessage(message) {
   this.drone.publish({
-    room: roomName,
+    room: this.roomName,
     message
   });
 }
 
-function startWebRTC(isOfferer) {
-  pc = new RTCPeerConnection(configuration);
+localDescCreated(desc) {
+  this.pc.setLocalDescription(
+    desc,
+    () => this.sendMessage({'sdp': this.pc.localDescription}),
+    this.onError
+  );
+}
+
+startWebRTC(isOfferer) {
+  this.pc = new RTCPeerConnection(this.configuration);
 
   // 'onicecandidate' notifies us whenever an ICE agent needs to deliver a
   // message to the other peer through the signaling server
-  pc.onicecandidate = event => {
+  this.pc.onicecandidate = event => {
     if (event.candidate) {
-      sendMessage({'candidate': event.candidate});
+      this.sendMessage({'candidate': event.candidate});
     }
   };
 
   // If user is offerer let the 'negotiationneeded' event create the offer
   if (isOfferer) {
-    pc.onnegotiationneeded = () => {
-      pc.createOffer().then(localDescCreated).catch(onError);
+    this.pc.onnegotiationneeded = () => {
+      this.pc.createOffer().then(this.localDescCreated).catch(this.onError);
     }
   }
 
   // When a remote stream arrives display it in the #remoteVideo element
-  pc.ontrack = event => {
+  this.pc.ontrack = event => {
     const stream = event.streams[0];
     if (!document.getElementById('remoteVideo').remoteVideo.srcObject || document.getElementById('remoteVideo').remoteVideo.srcObject.id !== stream.id) {
       document.getElementById('remoteVideo').remoteVideo.srcObject = stream;
@@ -95,12 +83,12 @@ function startWebRTC(isOfferer) {
     // Display your local video in #localVideo element
     document.getElementById('localVideo').localVideo.srcObject = stream;
     // Add your stream to be sent to the conneting peer
-    stream.getTracks().forEach(track => pc.addTrack(track, stream));
-  }, onError);
+    stream.getTracks().forEach(track => this.pc.addTrack(track, stream));
+  }, this.onError);
 
 
   // Listen to signaling data from Scaledrone
-  room.on('data', (message, client) => {
+  this.room.on('data', (message, client) => {
     // Message was sent by us
     if (client.id === this.drone.clientId) {
       return;
@@ -108,34 +96,53 @@ function startWebRTC(isOfferer) {
 
     if (message.sdp) {
       // This is called after receiving an offer or answer from another peer
-      pc.setRemoteDescription(new RTCSessionDescription(message.sdp), () => {
+      this.pc.setRemoteDescription(new RTCSessionDescription(message.sdp), () => {
         // When receiving an offer lets answer it
-        if (pc.remoteDescription.type === 'offer') {
-          pc.createAnswer().then(localDescCreated).catch(onError);
+        if (this.pc.remoteDescription.type === 'offer') {
+          this.pc.createAnswer().then(this.localDescCreated).catch(this.onError);
         }
-      }, onError);
+      }, this.onError);
     } else if (message.candidate) {
       // Add the new ICE candidate to our connections remote description
-      pc.addIceCandidate(
-        new RTCIceCandidate(message.candidate), onSuccess, onError
+      this.addIceCandidate(
+        new RTCIceCandidate(message.candidate), this.onSuccess, this.onError
       );
     }
   });
 }
 
-function localDescCreated(desc) {
-  pc.setLocalDescription(
-    desc,
-    () => sendMessage({'sdp': pc.localDescription}),
-    onError
-  );
+ready_to_connect(){
+      console.log(this)
+    this.drone.on('open', error => {
+      if (error) {
+        return console.error(error);
+      }
+      this.room = this.drone.subscribe(this.roomName);
+      this.room.on('open', error => {
+        if (error) {
+          this.onError(error);
+        }
+      });
+      // We're connected to the room and received an array of 'members'
+      // connected to the room (including us). Signaling server is ready.
+      this.room.on('members', members => {
+        console.log('MEMBERS', members);
+        // If we are the second user to connect to the room we will be creating the offer
+        const isOfferer = members.length === 2;
+        this.startWebRTC(isOfferer);
+      })
+    })
 }
+
+
+ componentDidMount(){
+// Send signaling data via Scaledrone
 }
 	render(){
 		return(
 			<div className='video-area'>
-				<video className="localVideo" id="localVideo" autoplay muted></video>
-          		<video className="remoteVideo" id="remoteVideo" autoplay></video>
+				<video className="localVideo" id="localVideo" autoPlay muted></video>
+        <video className="remoteVideo" id="remoteVideo" autoPlay></video>
 			</div>
 		)
 	}
