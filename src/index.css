@@ -1,0 +1,21 @@
+.localVideo{
+  background-color: blue;
+  width:100%;
+  height:40vh;
+  margin-top:5vh;
+  border-radius: 2px;
+}
+
+.remoteVideo{
+  background-color: red;
+  height:40vh;
+  margin-top:2vh;
+  width:100%;
+  border-radius: 2px;
+}
+.video-area{
+	height:90vh;
+	top:5vh;
+	background-color:orange;
+	bottom:5vh;
+}
