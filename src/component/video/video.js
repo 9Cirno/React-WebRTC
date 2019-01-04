@@ -13,28 +13,27 @@ class Video extends React.Component{
     // Generate random room name if needed
 
   // Room name needs to be prefixed with 'observable-'
-    
-    // this.state={
-        
-    //   roomName : 'observable-' + roomHash,
-    //   configuration : {
-    //     iceServers: [{
-    //       urls: 'stun:stun.l.google.com:19302'
-    //   }]
-    //   },
-    //   room:undefined,
-    //   pc:undefined
-    // }
+     const roomHash = this.props.location.hash.substring(1);
+    this.state={
+      drone:new window.ScaleDrone('yiS12Ts5RdNhebyM'),
+      roomName : 'observable-' + roomHash,
+      configuration : {
+        iceServers: [{
+          urls: 'stun:stun.l.google.com:19302'
+      }]
+      },
+      room:undefined,
+      pc:undefined
+    }
     //const drone =  new window.ScaleDrone('yiS12Ts5RdNhebyM');
-     const roomHash = this.props.location.hash.substring(1)
-     this.drone = new window.ScaleDrone('yiS12Ts5RdNhebyM')
-     this.roomName = 'observable-' + roomHash
-     this.configuration = {
-       iceServers: [{
-         urls: 'stun:stun.l.google.com:19302'
-       }]
-     };
-     this.room = undefined;
+   
+    // const roomName = 'observable-' + roomHash;
+    // const configuration = {
+    //   iceServers: [{
+    //     urls: 'stun:stun.l.google.com:19302'
+    //   }]
+    // };
+    // let room;
      this.pc = undefined
 
 
@@ -46,8 +45,8 @@ onError(error) {
 };
 
 sendMessage(message) {
-  this.drone.publish({
-    room: this.roomName,
+  this.state.drone.publish({
+    room: this.state.roomName,
     message
   });
 }
@@ -61,7 +60,7 @@ localDescCreated(desc) {
 }
 
 startWebRTC(isOfferer) {
-  this.pc = new RTCPeerConnection(this.configuration);
+  this.pc = new RTCPeerConnection(this.state.configuration);
 
   // 'onicecandidate' notifies us whenever an ICE agent needs to deliver a
   // message to the other peer through the signaling server
@@ -98,9 +97,9 @@ startWebRTC(isOfferer) {
 
 
   // Listen to signaling data from Scaledrone
-  this.room.on('data', (message, client) => {
+  this.state.room.on('data', (message, client) => {
     // Message was sent by us
-    if (client.id === this.drone.clientId) {
+    if (client.id === this.state.drone.clientId) {
       return;
     }
 
@@ -123,19 +122,19 @@ startWebRTC(isOfferer) {
 
 ready_to_connect(){
       console.log(this)
-    this.drone.on('open', error => {
+    this.state.drone.on('open', error => {
       if (error) {
         return console.error(error);
       }
-      this.room=this.drone.subscribe(this.roomName)
-      this.room.on('open', error => {
+      this.setState({room: this.state.drone.subscribe(this.state.roomName)}) 
+      this.state.room.on('open', error => {
         if (error) {
           this.onError(error);
         }
       });
       // We're connected to the room and received an array of 'members'
       // connected to the room (including us). Signaling server is ready.
-      this.room.on('members', members => {
+      this.state.room.on('members', members => {
         console.log('MEMBERS', members);
         // If we are the second user to connect to the room we will be creating the offer
         const isOfferer = members.length === 2;
