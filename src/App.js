@@ -12,7 +12,7 @@ class App extends Component {
     return (
       <div>
         <div>header</div>
-        <RtcFirebase></RtcFirebase>
+        <Video></Video>
       </div>
     );
   }
