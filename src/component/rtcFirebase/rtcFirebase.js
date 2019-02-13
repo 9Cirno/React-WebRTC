@@ -1,3 +1,5 @@
+//选择这段代码主要是因为这个组件是在完成自己项目需求之后，对部分代码进行修改让这个组件成为一个React上可以重复使用的WebRTC组件。
+//这是我所写的第一个可以真正意义上多项目复用组件。
 import React from 'react'
 import {withRouter} from 'react-router-dom'
 
