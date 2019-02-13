@@ -7,16 +7,17 @@ class RtcFirebase extends React.Component{
   constructor(props){
     super(props)
     if (!this.props.location.hash) {
+      // here is one of solutions by generate the possible random unique id to etabulish chat
+      // you can always replace code here to use your logic, be sure url are shared in both client
+      // in order to create the stream connection. 
       this.props.history.push(`#${Math.floor(Math.random() * 0xFFFFFF).toString(16)}`) 
     }
-    // Generate random room name if needed
 
-  // Room name needs to be prefixed with 'observable-'
      const roomHash = this.props.location.hash.substring(1);
      
-
+  // DATA provided below are in real format, please change according to your Firebase server 
       this.config={
-        apiKey: "AIzaSyAQp-SLmDH-t85Cjjm0GsYTXy3ICSESoEk",
+        apiKey: "REPLACED_WITH_YOUR_API_KEY",
         authDomain: "webrtc-server-63859.firebaseapp.com",
         databaseURL: "https://webrtc-server-63859.firebaseio.com",
         projectId: "webrtc-server-63859",
@@ -54,7 +55,14 @@ class RtcFirebase extends React.Component{
     }
 };
   showMyFace() {
-    console.log(navigator)
+  //////////////////////////////////////////////////////////////////////////////////////
+  // Be Careful!!
+  // Detect client device first, if client device miss microphone/camara,
+  // still enable following audio:true/ video:true will result error
+  // Incase only use in for mobile device, it will be ok
+  // Pay attention to disable audio/video accrodingly if your client my be other device 
+  //////////////////////////////////////////////////////////////////////////////////////
+	  
   navigator.mediaDevices.getUserMedia({audio:true, video:true})
     .then(stream => this.yourVideo.srcObject = stream)
     .catch(()=>{alert('device error')})
@@ -82,13 +90,17 @@ class RtcFirebase extends React.Component{
     this.pc.onaddstream = (event => this.friendsVideo.srcObject = event.stream);
     this.database.on('child_added', this.readMessage);
 }
+	// here provide the simplest implementation for the front end
+	// the Accept Button would start to receive stream from target client
+	// the Call button will start stream to the target client
+	// implement your local based on the demand
 	render(){
 		return(
 			<div className='video-area'>
 				<video className="_localVideo" id="localVideo" autoPlay playsinline muted></video>
         <video className="_remoteVideo" id="remoteVideo" autoPlay playsinline></video>
-        <button onClick={this.showFriendsFace} type="button" className="btn btn-primary btn-lg">Call</button>
-        <button onClick={this.showMyFace} type="button" className="btn btn-primary btn-lg">onpe mine</button>
+        <button onClick={this.showFriendsFace} type="button" className="btn btn-primary btn-lg">Accept</button>
+        <button onClick={this.showMyFace} type="button" className="btn btn-primary btn-lg">Call</button>
 			</div>
 		)
 	}
